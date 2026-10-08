@@ -1,0 +1,106 @@
+--- a/cherimoya/cherimoya.py
++++ b/cherimoya/cherimoya.py
+@@ -396,7 +396,7 @@
+ 	def fit(self, training_data, muon_optimizer, adam_optimizer, lw_optimizer,
+ 		muon_scheduler, adam_scheduler, lw_scheduler, X_valid, X_ctl_valid,
+ 		y_valid, max_epochs=50, batch_size=64, dtype='float32', device='cuda',
+-		early_stopping=None):
++		early_stopping=None, count_loss_weight=None, select_on='count_corr'):
+ 		"""Fit the model to data and validate it periodically.
+ 
+ 		This method controls the training of a Cherimoya model. It will fit
+@@ -488,6 +488,15 @@
+ 
+ 		iteration = 0
+ 		early_stop_count = 0
++		if count_loss_weight is not None:
++			# fixed weights: w = 1/(2*lw^2) -> w0 = 0.5, w1 = 0.5*count_loss_weight
++			import math as _math
++			with torch.no_grad():
++				self.lw0.fill_(1.0)
++				self.lw1.fill_(_math.sqrt(1.0 / count_loss_weight))
++			self.lw0.requires_grad = False
++			self.lw1.requires_grad = False
++
+ 		best_corr = float("-inf")
+ 		self.logger.start()
+ 		self.detail_logger.start()
+@@ -593,6 +602,14 @@
+ 				valid_profile_corr_mean = float(numpy.mean(
+ 					per_group_profile_corr))
+ 
++				if select_on == 'val_loss':
++					_w0 = (1.0 / (2.0 * self.lw0 ** 2)).detach().cpu()
++					_w1 = (1.0 / (2.0 * self.lw1 ** 2)).detach().cpu()
++					select_metric = -float(((_w0 * valid_profile_loss).sum()
++						+ (_w1 * valid_count_loss).sum()).item())
++				else:
++					select_metric = float(valid_count_corr)
++
+ 				summary_row = [epoch,
+ 					iteration,
+ 					train_time,
+@@ -603,7 +620,7 @@
+ 					valid_profile_corr_mean,
+ 					valid_count_corr,
+ 					valid_count_loss.mean().item(),
+-					(valid_count_corr > best_corr).item()]
++					bool(select_metric > best_corr)]
+ 				self.logger.add(summary_row)
+ 				self.detail_logger.add(summary_row
+ 					+ per_group_profile_corr
+@@ -612,9 +629,9 @@
+ 				self.logger.save("{}.log".format(self.name))
+ 				self.detail_logger.save("{}.detailed.log".format(self.name))
+ 
+-				if valid_count_corr > best_corr:
++				if select_metric > best_corr:
+ 					self.save("{}.torch".format(self.name))
+-					best_corr = valid_count_corr
++					best_corr = select_metric
+ 					early_stop_count = -1
+ 
+ 				ema.restore(self)
+--- a/cherimoya_cli/commands/fit.py
++++ b/cherimoya_cli/commands/fit.py
+@@ -90,7 +90,7 @@
+         sequences=parameters["sequences"],
+         signals=signal_files,
+         in_signals=control_files,
+-        loci=parameters["loci"],
++        loci=parameters.get("validation_loci") or parameters["loci"],
+         chroms=parameters["validation_chroms"],
+         in_window=parameters["in_window"],
+         out_window=parameters["out_window"],
+@@ -255,6 +255,8 @@
+         max_epochs=max_epochs,
+         batch_size=parameters["batch_size"],
+         early_stopping=parameters["early_stopping"],
++        count_loss_weight=parameters.get("count_loss_weight"),
++        select_on=parameters.get("select_on", "count_corr"),
+         dtype=parameters["dtype"],
+         device=parameters["device"],
+     )
+--- a/cherimoya_cli/defaults.py
++++ b/cherimoya_cli/defaults.py
+@@ -223,6 +223,8 @@
+ 		'n_warmup_epochs': 2,
+ 		'negative_ratio': 0.25,
+ 		'count_loss_weight': None,
++		'validation_loci': None,
++		'select_on': 'count_corr',
+ 		'num_workers': 1,
+ 		'early_stopping': 5,
+ 		'max_jitter': 500,
+--- a/cherimoya_cli/utils.py
++++ b/cherimoya_cli/utils.py
+@@ -50,7 +50,8 @@
+ 			parameters = json.load(infile)
+ 
+ 	unset_parameters = ("controls", "warning_threshold", "early_stopping",
+-		"count_loss_weight", "exclusion_lists")
++		"count_loss_weight", "exclusion_lists", "validation_loci",
++		"select_on")
+ 	for parameter, value in default_parameters.items():
+ 		if parameter not in parameters:
+ 			if value is None and parameter not in unset_parameters:

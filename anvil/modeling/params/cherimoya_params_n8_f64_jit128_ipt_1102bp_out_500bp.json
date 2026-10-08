@@ -1,0 +1,6 @@
+{
+    "_comment": "cherimoya v0.2.0+g2 fit parameters for fly (dm6) TF ChIP, 1102 bp in / 500 bp out. n_layers 8 is forced by the geometry (cherimoya trims 46 + 2^n_layers - 1 bp per side = (1102-500)/2 = 301). n_filters 64 = the released fly BPNet width (64 = 128 filters in the human benchmark). max_jitter 128 = the old bpnet jitter and the peak-wise split buffer. Everything else: cherimoya defaults (es100 recipe; epochs, early stopping, batch size, negative ratio and learning rate come from the pipeline / training input json).",
+    "n_filters": 64,
+    "n_layers": 8,
+    "max_jitter": 128
+}
