@@ -31,10 +31,14 @@ task run_cherimoya_distillation {
 	}
 
 	command {
+		# the task working directory (/cromwell_root on PAPI, /mnt/disks/cromwell_root on
+		# GCP Batch): outputs are copied here, so record it before cd-ing away
+		workdir=$(pwd)
+
 		#create data directories and download scripts
 		cd /; mkdir my_scripts
 		cd /my_scripts
-		git clone --depth 1 --branch v0.1.0 https://github.com/viramalingam/tf-atlas-cherimoya.git
+		git clone --depth 1 --branch v0.1.1 https://github.com/viramalingam/tf-atlas-cherimoya.git
 		chmod -R 777 tf-atlas-cherimoya
 		cd tf-atlas-cherimoya/anvil/modeling/
 
@@ -44,27 +48,27 @@ task run_cherimoya_distillation {
 		/my_scripts/tf-atlas-cherimoya/anvil/modeling/cherimoya_distillation_pipeline.sh ${experiment} ${training_input_json} ${testing_input_json} ${sep=',' teacher_models} ${reference_file} ${reference_file_index} ${chrom_sizes} ${chroms_txt} ${sep=',' bigwigs} ${peaks} ${background_regions} ${input_seq_len} ${output_len} ${sep=',' indices_files} ${number_of_folds} ${student_seed} "$released_test" "$released_all" || exit 1
 
 		echo "copying all files to cromwell_root folder"
-		cp -r /project/model /cromwell_root/
-		for d in /project/predictions_and_metrics_*; do cp -r $d /cromwell_root/; done
+		cp -r /project/model $workdir/
+		for d in /project/predictions_and_metrics_*; do cp -r $d $workdir/; done
 
 		for s in "" _ensemble _released; do
-			cp /project/predictions_and_metrics_test_peaks_test_chroms$s/spearman.txt /cromwell_root/spearman$s.txt
-			cp /project/predictions_and_metrics_test_peaks_test_chroms$s/pearson.txt /cromwell_root/pearson$s.txt
-			cp /project/predictions_and_metrics_test_peaks_test_chroms$s/jsd.txt /cromwell_root/jsd$s.txt
-			cp /project/predictions_and_metrics_all_peaks_test_chroms$s/spearman.txt /cromwell_root/spearman_all_peaks$s.txt
-			cp /project/predictions_and_metrics_all_peaks_test_chroms$s/pearson.txt /cromwell_root/pearson_all_peaks$s.txt
-			cp /project/predictions_and_metrics_all_peaks_test_chroms$s/jsd.txt /cromwell_root/jsd_all_peaks$s.txt
-			cp /project/predictions_and_metrics_all_peaks_test_chroms$s/auprc.txt /cromwell_root/auprc$s.txt
-			cp /project/predictions_and_metrics_all_peaks_test_chroms$s/auroc.txt /cromwell_root/auroc$s.txt
+			cp /project/predictions_and_metrics_test_peaks_test_chroms$s/spearman.txt $workdir/spearman$s.txt
+			cp /project/predictions_and_metrics_test_peaks_test_chroms$s/pearson.txt $workdir/pearson$s.txt
+			cp /project/predictions_and_metrics_test_peaks_test_chroms$s/jsd.txt $workdir/jsd$s.txt
+			cp /project/predictions_and_metrics_all_peaks_test_chroms$s/spearman.txt $workdir/spearman_all_peaks$s.txt
+			cp /project/predictions_and_metrics_all_peaks_test_chroms$s/pearson.txt $workdir/pearson_all_peaks$s.txt
+			cp /project/predictions_and_metrics_all_peaks_test_chroms$s/jsd.txt $workdir/jsd_all_peaks$s.txt
+			cp /project/predictions_and_metrics_all_peaks_test_chroms$s/auprc.txt $workdir/auprc$s.txt
+			cp /project/predictions_and_metrics_all_peaks_test_chroms$s/auroc.txt $workdir/auroc$s.txt
 		done
-		cp /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/spearman.txt /cromwell_root/spearman_wo_bias.txt
-		cp /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/pearson.txt /cromwell_root/pearson_wo_bias.txt
-		cp /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/jsd.txt /cromwell_root/jsd_wo_bias.txt
-		cp /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/spearman.txt /cromwell_root/spearman_all_peaks_wo_bias.txt
-		cp /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/pearson.txt /cromwell_root/pearson_all_peaks_wo_bias.txt
-		cp /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/jsd.txt /cromwell_root/jsd_all_peaks_wo_bias.txt
-		cp /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/auprc.txt /cromwell_root/auprc_wo_bias.txt
-		cp /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/auroc.txt /cromwell_root/auroc_wo_bias.txt
+		cp /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/spearman.txt $workdir/spearman_wo_bias.txt
+		cp /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/pearson.txt $workdir/pearson_wo_bias.txt
+		cp /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/jsd.txt $workdir/jsd_wo_bias.txt
+		cp /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/spearman.txt $workdir/spearman_all_peaks_wo_bias.txt
+		cp /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/pearson.txt $workdir/pearson_all_peaks_wo_bias.txt
+		cp /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/jsd.txt $workdir/jsd_all_peaks_wo_bias.txt
+		cp /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/auprc.txt $workdir/auprc_wo_bias.txt
+		cp /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/auroc.txt $workdir/auroc_wo_bias.txt
 	}
 
 	output {

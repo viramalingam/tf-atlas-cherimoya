@@ -33,50 +33,54 @@ task run_cherimoya_modelling {
 	}
 
 	command {
+		# the task working directory (/cromwell_root on PAPI, /mnt/disks/cromwell_root on
+		# GCP Batch): outputs are copied here, so record it before cd-ing away
+		workdir=$(pwd)
+
 		#create data directories and download scripts
 		cd /; mkdir my_scripts
 		cd /my_scripts
-		git clone --depth 1 --branch v0.1.0 https://github.com/viramalingam/tf-atlas-cherimoya.git
+		git clone --depth 1 --branch v0.1.1 https://github.com/viramalingam/tf-atlas-cherimoya.git
 		chmod -R 777 tf-atlas-cherimoya
 		cd tf-atlas-cherimoya/anvil/modeling/
 
 		# splits json for this fold (layout of peak_wise_split_fold0.json)
-		/my_scripts/tf-atlas-cherimoya/anvil/modeling/peak_wise_split_fold_json.sh ${fold} /cromwell_root/splits_fold${fold}.json
-		cat /cromwell_root/splits_fold${fold}.json
+		/my_scripts/tf-atlas-cherimoya/anvil/modeling/peak_wise_split_fold_json.sh ${fold} $workdir/splits_fold${fold}.json
+		cat $workdir/splits_fold${fold}.json
 
 		##modelling
 
-		echo "run /my_scripts/tf-atlas-cherimoya/anvil/modeling/cherimoya_modelling_pipeline.sh" ${experiment} ${training_input_json} ${testing_input_json} ${cherimoya_params_json} /cromwell_root/splits_fold${fold}.json ${reference_file} ${reference_file_index} ${chrom_sizes} ${chroms_txt} ${sep=',' bigwigs} ${peaks} ${background_regions} ${learning_rate} ${input_seq_len} ${output_len} ${sep=',' indices_files} ${seed} ${true='true' false='false' predict_all_chroms}
-		/my_scripts/tf-atlas-cherimoya/anvil/modeling/cherimoya_modelling_pipeline.sh ${experiment} ${training_input_json} ${testing_input_json} ${cherimoya_params_json} /cromwell_root/splits_fold${fold}.json ${reference_file} ${reference_file_index} ${chrom_sizes} ${chroms_txt} ${sep=',' bigwigs} ${peaks} ${background_regions} ${learning_rate} ${input_seq_len} ${output_len} ${sep=',' indices_files} ${seed} ${true='true' false='false' predict_all_chroms} || exit 1
+		echo "run /my_scripts/tf-atlas-cherimoya/anvil/modeling/cherimoya_modelling_pipeline.sh" ${experiment} ${training_input_json} ${testing_input_json} ${cherimoya_params_json} $workdir/splits_fold${fold}.json ${reference_file} ${reference_file_index} ${chrom_sizes} ${chroms_txt} ${sep=',' bigwigs} ${peaks} ${background_regions} ${learning_rate} ${input_seq_len} ${output_len} ${sep=',' indices_files} ${seed} ${true='true' false='false' predict_all_chroms}
+		/my_scripts/tf-atlas-cherimoya/anvil/modeling/cherimoya_modelling_pipeline.sh ${experiment} ${training_input_json} ${testing_input_json} ${cherimoya_params_json} $workdir/splits_fold${fold}.json ${reference_file} ${reference_file_index} ${chrom_sizes} ${chroms_txt} ${sep=',' bigwigs} ${peaks} ${background_regions} ${learning_rate} ${input_seq_len} ${output_len} ${sep=',' indices_files} ${seed} ${true='true' false='false' predict_all_chroms} || exit 1
 
 		echo "copying all files to cromwell_root folder"
 
-		cp /project/cherimoya_params.json /cromwell_root/cherimoya_params.json
-		cp -r /project/model /cromwell_root/
-		cp -r /project/predictions_and_metrics_test_peaks_test_chroms /cromwell_root/
-		cp -r /project/predictions_and_metrics_test_peaks_all_chroms /cromwell_root/
-		cp -r /project/predictions_and_metrics_all_peaks_test_chroms /cromwell_root/
-		cp -r /project/predictions_and_metrics_all_peaks_all_chroms /cromwell_root/
+		cp /project/cherimoya_params.json $workdir/cherimoya_params.json
+		cp -r /project/model $workdir/
+		cp -r /project/predictions_and_metrics_test_peaks_test_chroms $workdir/
+		cp -r /project/predictions_and_metrics_test_peaks_all_chroms $workdir/
+		cp -r /project/predictions_and_metrics_all_peaks_test_chroms $workdir/
+		cp -r /project/predictions_and_metrics_all_peaks_all_chroms $workdir/
 
-		cp -r /project/predictions_and_metrics_test_peaks_test_chroms/spearman.txt /cromwell_root/spearman.txt
-		cp -r /project/predictions_and_metrics_test_peaks_test_chroms/pearson.txt /cromwell_root/pearson.txt
-		cp -r /project/predictions_and_metrics_test_peaks_test_chroms/jsd.txt /cromwell_root/jsd.txt
+		cp -r /project/predictions_and_metrics_test_peaks_test_chroms/spearman.txt $workdir/spearman.txt
+		cp -r /project/predictions_and_metrics_test_peaks_test_chroms/pearson.txt $workdir/pearson.txt
+		cp -r /project/predictions_and_metrics_test_peaks_test_chroms/jsd.txt $workdir/jsd.txt
 
-		cp -r /project/predictions_and_metrics_all_peaks_test_chroms/spearman.txt /cromwell_root/spearman_all_peaks.txt
-		cp -r /project/predictions_and_metrics_all_peaks_test_chroms/pearson.txt /cromwell_root/pearson_all_peaks.txt
-		cp -r /project/predictions_and_metrics_all_peaks_test_chroms/jsd.txt /cromwell_root/jsd_all_peaks.txt
-		cp -r /project/predictions_and_metrics_all_peaks_test_chroms/auprc.txt /cromwell_root/auprc.txt
-		cp -r /project/predictions_and_metrics_all_peaks_test_chroms/auroc.txt /cromwell_root/auroc.txt
+		cp -r /project/predictions_and_metrics_all_peaks_test_chroms/spearman.txt $workdir/spearman_all_peaks.txt
+		cp -r /project/predictions_and_metrics_all_peaks_test_chroms/pearson.txt $workdir/pearson_all_peaks.txt
+		cp -r /project/predictions_and_metrics_all_peaks_test_chroms/jsd.txt $workdir/jsd_all_peaks.txt
+		cp -r /project/predictions_and_metrics_all_peaks_test_chroms/auprc.txt $workdir/auprc.txt
+		cp -r /project/predictions_and_metrics_all_peaks_test_chroms/auroc.txt $workdir/auroc.txt
 
-		cp -r /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/spearman.txt /cromwell_root/spearman_wo_bias.txt
-		cp -r /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/pearson.txt /cromwell_root/pearson_wo_bias.txt
-		cp -r /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/jsd.txt /cromwell_root/jsd_wo_bias.txt
+		cp -r /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/spearman.txt $workdir/spearman_wo_bias.txt
+		cp -r /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/pearson.txt $workdir/pearson_wo_bias.txt
+		cp -r /project/predictions_and_metrics_test_peaks_test_chroms_wo_bias/jsd.txt $workdir/jsd_wo_bias.txt
 
-		cp -r /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/spearman.txt /cromwell_root/spearman_all_peaks_wo_bias.txt
-		cp -r /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/pearson.txt /cromwell_root/pearson_all_peaks_wo_bias.txt
-		cp -r /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/jsd.txt /cromwell_root/jsd_all_peaks_wo_bias.txt
-		cp -r /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/auprc.txt /cromwell_root/auprc_wo_bias.txt
-		cp -r /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/auroc.txt /cromwell_root/auroc_wo_bias.txt
+		cp -r /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/spearman.txt $workdir/spearman_all_peaks_wo_bias.txt
+		cp -r /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/pearson.txt $workdir/pearson_all_peaks_wo_bias.txt
+		cp -r /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/jsd.txt $workdir/jsd_all_peaks_wo_bias.txt
+		cp -r /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/auprc.txt $workdir/auprc_wo_bias.txt
+		cp -r /project/predictions_and_metrics_all_peaks_test_chroms_wo_bias/auroc.txt $workdir/auroc_wo_bias.txt
 	}
 
 	output {

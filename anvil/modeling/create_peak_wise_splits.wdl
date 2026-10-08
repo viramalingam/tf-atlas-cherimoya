@@ -19,10 +19,14 @@ task run_peak_wise_splits {
 	}
 
 	command {
+		# the task working directory (/cromwell_root on PAPI, /mnt/disks/cromwell_root on
+		# GCP Batch): outputs are copied here, so record it before cd-ing away
+		workdir=$(pwd)
+
 		#create data directories and download scripts
 		cd /; mkdir my_scripts
 		cd /my_scripts
-		git clone --depth 1 --branch v0.1.0 https://github.com/viramalingam/tf-atlas-cherimoya.git
+		git clone --depth 1 --branch v0.1.1 https://github.com/viramalingam/tf-atlas-cherimoya.git
 		chmod -R 777 tf-atlas-cherimoya
 		cd tf-atlas-cherimoya/anvil/modeling/
 
@@ -33,8 +37,8 @@ task run_peak_wise_splits {
 
 		echo "copying all files to cromwell_root folder"
 
-		cp -r /project/splits_indices /cromwell_root/
-		cp -r /project/supplemental_outputs /cromwell_root/
+		cp -r /project/splits_indices $workdir/
+		cp -r /project/supplemental_outputs $workdir/
 	}
 
 	output {
