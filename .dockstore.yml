@@ -1,0 +1,14 @@
+version: 1.2
+workflows:
+  - name: create_peak_wise_splits
+    subclass: WDL
+    primaryDescriptorPath: /anvil/modeling/create_peak_wise_splits.wdl
+    publish: true
+  - name: cherimoya_modelling
+    subclass: WDL
+    primaryDescriptorPath: /anvil/modeling/run_cherimoya_modelling.wdl
+    publish: true
+  - name: cherimoya_distillation
+    subclass: WDL
+    primaryDescriptorPath: /anvil/modeling/run_cherimoya_distillation.wdl
+    publish: true
